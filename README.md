@@ -19,5 +19,3 @@ Inspired by the concept of genetic algorithms, each character slot independently
 ## 🚀 Getting Started
 
 **Requirements:** Python 3.6+, no external dependencies
-
-```bash
