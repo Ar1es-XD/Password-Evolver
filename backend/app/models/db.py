@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Float, Integer, String
+from sqlalchemy import Boolean, DateTime, Float, Integer, String, Index
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -10,6 +10,11 @@ class Base(DeclarativeBase):
 
 class Simulation(Base):
     __tablename__ = "simulations"
+    __table_args__ = (
+        Index("ix_simulations_status", "status"),
+        Index("ix_simulations_created_at", "created_at"),
+        Index("ix_simulations_task_id", "task_id"),
+    )
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     target: Mapped[str] = mapped_column(String(2048))

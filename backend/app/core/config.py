@@ -27,7 +27,9 @@ class Settings(BaseSettings):
     celery_result_backend: str = "redis://localhost:6379/0"
     db_pool_size: int = Field(default=5, ge=1, le=50)
     db_max_overflow: int = Field(default=10, ge=0, le=100)
-    auto_create_tables: bool = False
+    db_pool_timeout: int = Field(default=30, ge=1, le=120)
+    db_pool_recycle: int = Field(default=1800, ge=300, le=7200)
+    alembic_ini_path: str = "backend/alembic.ini"
     worker_heartbeat_interval: int = Field(default=10, ge=5, le=300)
     worker_heartbeat_channel: str = "workers:heartbeat"
     worker_metrics_pushgateway: str = ""

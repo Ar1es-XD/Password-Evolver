@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from app.api.system import router as system_router
 from app.api.router import api_router
 from app.core.config import get_settings
-from app.core.db import build_engine, build_session_maker, init_db
+from app.core.db import build_engine, build_session_maker
 from app.core.exceptions import add_exception_handlers
 from app.core.logging import configure_logging
 from app.core.middleware import (
@@ -16,6 +16,7 @@ from app.core.middleware import (
 )
 from app.core.observability import configure_tracing
 from app.services.event_bus import RedisEventBus
+from app.services.db_validation import ensure_migrations
 from app.services.simulation_store import SimulationStore
 from app.services.websocket_bridge import WebSocketBridge
 from app.websocket.manager import WebSocketManager
@@ -27,7 +28,7 @@ def create_app() -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        await init_db(app.state.db_engine, auto_create=settings.auto_create_tables)
+        await ensure_migrations(app.state.db_engine, settings.alembic_ini_path)
         await app.state.websocket_bridge.start()
         yield
         await app.state.websocket_bridge.stop()
