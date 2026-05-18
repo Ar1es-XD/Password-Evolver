@@ -3,6 +3,8 @@ from typing import Dict, Set
 
 from fastapi import WebSocket
 
+from app.utils.retry import retry_async
+
 
 class WebSocketManager:
     def __init__(self) -> None:
@@ -28,9 +30,20 @@ class WebSocketManager:
             group = list(self._connections.get(simulation_id, set()))
         for websocket in group:
             try:
-                await websocket.send_json(message)
+                await retry_async(lambda: websocket.send_json(message), attempts=2, delay=0.05)
             except Exception:
                 await self.disconnect(simulation_id, websocket)
 
     async def send_to(self, simulation_id: str, message: dict) -> None:
         await self.broadcast(simulation_id, message)
+
+    async def close_all(self) -> None:
+        async with self._lock:
+            connections = [(sid, list(sockets)) for sid, sockets in self._connections.items()]
+            self._connections.clear()
+        for simulation_id, sockets in connections:
+            for websocket in sockets:
+                try:
+                    await websocket.close()
+                except Exception:
+                    pass

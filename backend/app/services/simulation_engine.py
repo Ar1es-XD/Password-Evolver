@@ -7,6 +7,7 @@ from typing import Optional
 from app.models.schemas import SimulationStatus
 from app.services.metrics_service import MetricsService
 from app.services.registry import SimulationRegistry
+from app.utils.retry import retry_async
 from app.websocket.manager import WebSocketManager
 
 logger = logging.getLogger(__name__)
@@ -35,6 +36,7 @@ class SimulationEngine:
         if state_id in self._tasks:
             return
         task = asyncio.create_task(self._run(state_id))
+        task.add_done_callback(lambda t: self._handle_done(state_id, t))
         self._tasks[state_id] = task
 
     async def stop(self, state_id: str) -> bool:
@@ -42,7 +44,15 @@ class SimulationEngine:
         if task is None:
             return False
         task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
         return True
+
+    async def shutdown(self) -> None:
+        for task in list(self._tasks.values()):
+            task.cancel()
+        if self._tasks:
+            await asyncio.gather(*self._tasks.values(), return_exceptions=True)
+        self._tasks.clear()
 
     def get_status(self, state_id: str) -> Optional[SimulationStatus]:
         state = self._registry.get(state_id)
@@ -85,6 +95,14 @@ class SimulationEngine:
         finally:
             self._tasks.pop(state_id, None)
 
+    def _handle_done(self, state_id: str, task: asyncio.Task) -> None:
+        try:
+            task.result()
+        except asyncio.CancelledError:
+            logger.info("simulation cancelled", extra={"simulation_id": state_id})
+        except Exception:
+            logger.exception("simulation task failed", extra={"simulation_id": state_id})
+
     def _build_status(self, state) -> SimulationStatus:
         matched = sum(1 for c, w in zip(state.current, state.target) if c == w)
         elapsed = max(time.time() - state.start_time, 0.0)
@@ -108,4 +126,8 @@ class SimulationEngine:
 
     async def _publish(self, state) -> None:
         status = self._build_status(state)
-        await self._ws.broadcast(state.id, status.model_dump())
+        await retry_async(
+            lambda: self._ws.broadcast(state.id, status.model_dump()),
+            attempts=3,
+            delay=0.05,
+        )

@@ -40,3 +40,6 @@ class SimulationRegistry:
 
     def remove(self, state_id: str) -> None:
         self._states.pop(state_id, None)
+
+    def count(self) -> int:
+        return len(self._states)

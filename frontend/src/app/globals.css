@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --background: 0 0% 100%;
+    --foreground: 220 18% 12%;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    color: hsl(var(--foreground));
+    background: radial-gradient(circle at top left, rgba(255, 237, 213, 0.6), transparent 55%),
+        radial-gradient(circle at bottom right, rgba(186, 230, 253, 0.6), transparent 55%),
+        hsl(220 15% 97%);
+    font-family: var(--font-body), "IBM Plex Sans", sans-serif;
+}
+
+.main-grid {
+    background-image: linear-gradient(rgba(15, 23, 42, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(15, 23, 42, 0.05) 1px, transparent 1px);
+    background-size: 32px 32px;
+}
